@@ -23,11 +23,8 @@
  */
 
 // FILES.
-global $CFG,$PAGE;
-require('../../config.php');
+require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
-// $PAGE->requires->css('/report/userattend/assets/css/styles.min.css');
-// $PAGE->requires->js('/report/userattend/assets/js/script.min.js');
 require_once('lib.php');
 
 // Admin settings.
