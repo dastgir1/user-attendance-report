@@ -23,166 +23,19 @@
     {
     }
 }}
-<div class="container mt-5 mb-5">      
+<div class="container my-5 ">
     <div class="row" id="ao-accordion">
         <div class="col-xl-12">
             <div role="tablist" id="ao-quarters-accordion">
-                {{#quarters}}
-                    <div class="card mb-3 ">
-                        <div class="card-header " role="tab" style="background-color:#f3d9d6;">
-                            <h5 class="mb-0 ">
-                                <a  data-toggle="collapse" aria-expanded="true" aria-controls="ao-quarters-accordion .item-1" href="#ao-quarters-accordion .item-1">
-                                    {{title}}
-                                    <i class="fa fa-caret-down"></i>
-                                </a>
-                            </h5>
-                        </div>
-                        <div class="collapse show item-1" role="tabpanel" data-parent="#ao-quarters-accordion">
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover table-bordered">
-                                        <thead>
-                                            <tr>
-                                                <th id="ao-quarter-courses-cell">
-                                                    Courses
-                                                </th>
-                                                <th class="text-center" id="ao-quarter-present-cell">
-                                                    Present
-                                                </th>
-                                                <th class="text-center" id="ao-quarter-absent-cell">
-                                                    Absent
-                                                </th>
-                                                <th class="text-center" id="ao-quarter-late-cell">
-                                                    Late
-                                                </th>
-                                                <th class="text-center" id="ao-quarter-session-cell">
-                                                    Late Session
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {{#courses}}
-                                            <tr>
-                                                <td class="ao-course-name">
-                                                    {{coursename}}
-                                                </td>
-                                                <td class="text-center">
-                                                    {{p}}%
-                                                </td>
-                                                <td class="text-center">
-                                                    {{a}}%
-                                                </td>
-                                                <td class="text-center">
-                                                    {{l}}%
-                                                </td>
-                                                <td class="text-center">{{lastsession}}</td>
-                                            </tr>
-                                            {{/courses}}    
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td>
-                                                    <strong>
-                                                        <span>
-                                                            Quarter Total:
-                                                        </span>
-                                                    </strong>
-                                                </td>
-                                                <td class="text-center">
-                                                    <strong>
-                                                        <span>
-                                                            {{totalpresent}}%
-                                                        </span>
-                                                    </strong>
-                                                </td>
-                                                <td class="text-center">
-                                                    <strong>
-                                                        <span>
-                                                            {{totalabsent}}%
-                                                        </span>
-                                                    </strong>
-                                                </td>
-                                                <td class="text-center">
-                                                    <strong>
-                                                        <span>
-                                                            {{totalleave}}%
-                                                        </span>
-                                                    </strong>
-                                                </td>
-                                                <td class="text-center">
-                                                    <strong>
-                                                        <span>
-                                                            {{lastsession}}
-                                                        </span>
-                                                    </strong>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {{/quarters}}
+             {{! Quarters }}
+             {{> report_userattend/report/quarters}}
             </div>
+
+            {{! Divider. }}
             <div class="dropdown-divider my-5"></div>
         </div>
-        <div class="col-xl-12">
-            <h5>
-                <strong>
-                    Cumulative total
-                </strong>
-            </h5>
-        </div>
-        <div class="col-xl-4 mt-3" id="ao-cumulative-total">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>
-                                Present
-                            </th>
-                            <th>
-                                <span>
-                                    {{summary.totalpresent}}%
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <strong>
-                                    Absent
-                                </strong>
-                            </td>
-                            <td>
-                                {{summary.totalabsent}}%
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>
-                                    Late
-                                </strong>
-                            </td>
-                            <td>
-                                {{summary.totalleave}}%
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>
-                                    Last Session
-                                </strong>
-                            </td>
-                            <td>
-                                {{summary.lastsession}}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+
+        {{! Cumulative }}
+        {{> report_userattend/report/cumulative}}
     </div>
 </div>
