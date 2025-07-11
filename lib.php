@@ -95,115 +95,236 @@ function report_userattend_get_user_programs_in_batch(int $userid): array {
 }
 
 
-function get_user_attendance_report(int $userid, int $programid): array {
+/**
+ * Get user attendance record in a course.
+ *
+ * @param int $userid
+ * @param array $sessionids
+ *
+ * @return array
+ *
+ */
+function report_userattend_get_user_attendance_record_in_course(int $userid, int $courseid): array {
     global $DB;
-    // Geting quarters records against program id
-    $quarters = $DB->get_fieldset_select('course_categories', 'id', 'parent = ?', [$programid]);
 
-    if (empty($quarters)) {
-        return ['quarters' => [], 'message' => 'No quarters found for this program.'];
-    }
-    // Initialize the variables
-    $reportdata = [
-        'quarters' => [],
-        'summary' => [
-            'totalpresent' => 0,
-            'totalabsent' => 0,
-            'totalleave' => 0,
-            'lastsession' => '-'
-        ]
+    // Fetch user last access date in the course.
+    $lastaccess = $DB->get_field('user_lastaccess', 'timeaccess', ['userid' => $userid, 'courseid' => $courseid]);
+    $lastaccess = ($lastaccess == 0) ? 'Never' : $lastaccess;
+
+    $emptydata = [
+        'emptydata'             => true,
+        'coursepresent'         => '-',
+        'courseabsent'          => '-',
+        'courselate'            => '-',
+        'coursegraderate'       => '-',
+        'courselastsession'     => $lastaccess,
+        'isstrlastsession'      => is_string($lastaccess),
     ];
 
-    foreach ($quarters as $index => $qid) {
-        $quartertitle = 'Quarter ' . ($index + 1);
-        // Getting course records
-        $courses = $DB->get_records('course', ['category' => $qid], 'id', 'id, fullname');
-        $coursedata = []; 
-         // Initialize the variables   
-        $totalpresent = $totalabsent = $totalleave = 0;
-        foreach ($courses as $course) {
-            $context = context_course::instance($course->id);
-            if (!is_enrolled($context, $userid)) {
-                continue;
+    // Don't add the course in the report if the user is not enrolled.
+    if (!is_enrolled(context_course::instance($courseid), $userid)) {
+        $emptydata['courselastsession'] = 'Not Enrolled';
+        $emptydata['isstrlastsession'] = true;
+        return $emptydata;
+    }
+
+    // Check if the course has auto attendance activity.
+    if (!$DB->record_exists('autoattendmod', ['course' => $courseid])) {
+        return $emptydata; // No auto attendance activity in this course.
+    }
+
+    // Check if there are any auto attendance sessions for the course.
+    if (!$DB->record_exists('autoattend_sessions', ['courseid' => $courseid])) {
+        return $emptydata; // No sessions for the course.
+    }
+
+    // Retrieve all auto attendance sessions records of user for the course.
+    $userattendances = $DB->get_records_sql(
+        "SELECT stu.attsid, stu.status, stu.calledtime,
+                stt.grade
+           FROM {autoattend_students} stu
+           JOIN {autoattend_sessions} ses ON ses.id = stu.attsid
+           JOIN {autoattend_settings} stt ON stt.courseid = ses.courseid AND stt.status = stu.status
+          WHERE stu.studentid = :userid
+            AND ses.courseid = :courseid
+       ORDER BY stu.calledtime DESC", [
+            'userid'    => $userid,
+            'courseid'  => $courseid,
+        ]
+    );
+
+    // Init loop variables.
+    $coursepresent = $courseabsent = $courselate = $courselastsession = $usertotalgrades = 0;
+    $presentstatusgrade = 0;
+
+    foreach ($userattendances as $userattendance) {
+        if ($userattendance->status === 'P') {
+            $coursepresent++;
+
+            // Get the grade for the present status.
+            if ($presentstatusgrade == 0) {
+                $presentstatusgrade = $userattendance->grade;
             }
-            // Checking is attendance activity present against course ids.
-            $attendance = $DB->record_exists('autoattendmod', ['course' => $course->id]);
-            
-            if ($attendance==false) {
-                continue;
-            }
-            // Geting sessions records
-            $sessions = $DB->get_records('autoattend_sessions', ['courseid' => $course->id]);
-            if (empty($sessions)) {
-                continue;
-            }
-            // Geting sessions id's
-            $sessionids = array_keys($sessions);
-            list($sql, $params) = $DB->get_in_or_equal($sessionids, SQL_PARAMS_NAMED);
-            $params['userid'] = $userid;
-            // Geting attendance records
-            $logs = $DB->get_records_sql("
-                SELECT attsid, status, calledtime
-                FROM {autoattend_students}
-                WHERE studentid = :userid AND attsid $sql
-                ORDER BY calledtime DESC
-            ", $params);
-
-            $p = $a = $l = 0;
-            $lastdate = '';
-
-            foreach ($logs as $log) {
-                // Check status 
-                if ($log->status === 'P') {
-                    $p++;
-                } elseif ($log->status === 'A' || $log->status === 'X') {
-                    $a++;
-                } elseif ($log->status === 'L') {
-                    $l++;
-                }
-
-                if (empty($lastdate) || $log->calledtime > strtotime($lastdate)) {
-                    $lastdate = $sessions[$log->attsid]->sessdate ?? null;
-                }
-            }
-
-            $totalpresent += $p;
-            $totalabsent += $a;
-            $totalleave += $l;
-
-            $coursedata[] = [
-                'coursename' => $course->fullname,
-                'p' => $p,
-                'a' => $a,
-                'l' => $l,
-                
-                'lastsession' => $lastdate ? userdate($lastdate) : '-',
-            ];
+        } else if ($userattendance->status === 'X') {
+            $courseabsent++;
+        } else if ($userattendance->status === 'L') {
+            $courselate++;
         }
 
-        if (!empty($coursedata)) {
-            
-            $reportdata['quarters'][] = [
-                'title' => $quartertitle,
-                'courses' => $coursedata,
-                'totalpresent' => $totalpresent,
-                'totalabsent' => $totalabsent,
-                'totalleave' => $totalleave,
-                
-                'lastsession' => $lastdate ? userdate($lastdate) : '-'
-            ];
+        // Get the last session called time of the user for all sessions.
+        if ($userattendance->calledtime > $courselastsession) {
+            $courselastsession = $userattendance->calledtime;
+        }
 
-            // Add to cumulative summary
-            $reportdata['summary']['totalpresent'] += $totalpresent;
-            $reportdata['summary']['totalabsent'] += $totalabsent;
-            $reportdata['summary']['totalleave'] += $totalleave;
+        // Calculate the total grades of user in all autoattendance sessions.
+        $usertotalgrades += $userattendance->grade;
+    }
+
+    // Get all sessions IDs for the course auto attendance activity.
+    $coursetotalsessions = $DB->count_records('autoattend_sessions', ['courseid' => $courseid]);
+    // Calculate the total grades in auto attendance for the course.
+    $coursetotalgrades = $presentstatusgrade * $coursetotalsessions;
+
+    return [
+        'coursepresent'         => $coursepresent,
+        'courseabsent'          => $courseabsent,
+        'courselate'            => $courselate,
+        'coursegraderate'       => ($coursetotalgrades > 0) ? round(($usertotalgrades / $coursetotalgrades) * 100, 1) : 0,
+        'courselastsession'     => $courselastsession,
+        'isstrlastsession'      => false,
+    ];
+}
+
+/**
+ * Get user attendance record in a quarter.
+ *
+ * @param int $userid
+ * @param int $quarterid
+ *
+ * @return array
+ *
+ */
+function report_userattend_get_user_attendance_record_in_quarter(int $userid, int $quarterid): array {
+    global $DB;
+
+    // Get all courses under the quarter.
+    $courses = $DB->get_records('course', ['category' => $quarterid], 'id', 'id, fullname');
+    // Check if there are no courses in the quarter.
+    if (empty($courses)) {
+        return [];
+    }
+
+    // Init loop variables.
+    $quartercoursesdata = [];
+    $quarterpresent = $quarterabsent = $quarterlate = $quartergraderate = $quarterlastsession = $processedquartercourses = 0;
+
+    foreach ($courses as $course) {
+        $courseid = $course->id;
+
+        // Initialize course data.
+        $coursedata = report_userattend_get_user_attendance_record_in_course($userid, $courseid);
+        // Add two more values to coursedata for the Mustache context.
+        $coursedata['courseid']     = $courseid;
+        $coursedata['coursename']   = $course->fullname;
+
+        // CALCULATE quarter values for the report context.
+        // Add course data to quarter courses data.
+        $quartercoursesdata[] = $coursedata;
+
+        if (!array_key_exists('emptydata', $coursedata)) { // Check if the course data is not empty.
+            // Calculate quarter present, absent, late and grade rate.
+            $quarterpresent += $coursedata['coursepresent'];
+            $quarterabsent  += $coursedata['courseabsent'];
+            $quarterlate    += $coursedata['courselate'];
+            // Calculate quarter grade rate.
+            $quartergraderate += $coursedata['coursegraderate'];
+            // Check if the last session date of the quarter is greater than cumulative last session date.
+            if ($quarterlastsession < $coursedata['courselastsession']) {
+                $quarterlastsession = (int) $coursedata['courselastsession'];
+            }
+
+            // Total processed courses in the quarter.
+            $processedquartercourses++;
+        }
+
+    }
+
+    // Set for empty quarter last session.
+    $quarterlastsession = ($quarterlastsession == 0) ? '-' : $quarterlastsession;
+
+    return [
+        'quartercourses'        => $quartercoursesdata,
+        'quarterpresent'        => $quarterpresent,
+        'quarterabsent'         => $quarterabsent,
+        'quarterlate'           => $quarterlate,
+        'quartergraderate'      => $processedquartercourses > 0 ? round($quartergraderate / $processedquartercourses, 1) : 0,
+        'quarterlastsession'    => $quarterlastsession,
+        'isstrlastsession'      => is_string($quarterlastsession),
+    ];
+}
+
+/**
+ * Get the context of 'user attendance report in a specific program' for the Mustache template.
+ *
+ * @param int $userid
+ * @param int $programid
+ *
+ * @return array $reportcontext
+ *
+ */
+function report_userattend_get_context_of_user_attendance_report_in_program(int $userid, int $programid): array {
+    global $DB;
+
+    // Get all quarters under the program.
+    $quarters = $DB->get_records('course_categories', ['parent' => $programid]);
+    if (empty($quarters)) {
+        return [];
+    }
+
+    // Init loop variables.
+    $cumulativepresent = $cumulativeabsent = $cumulativelate = $cumulativegraderate = $cumulativelastsession = $processedcumulativequarters = 0;
+
+    foreach ($quarters as $quarter) {
+        $quarterid = $quarter->id;
+
+        // Initialize course data.
+        $quarterdata = report_userattend_get_user_attendance_record_in_quarter($userid, $quarterid);
+        // Add two more values to quarterdata for the Mustache context.
+        $quarterdata['quarterid']     = $quarterid;
+        $quarterdata['quartername']   = $quarter->name;
+
+        // CALCULATE cummulative values for the report context.
+        // Add course data to quarter courses data.
+        $cumulativequartersdata[] = $quarterdata;
+        // Calculate quarter present, absent, late and grade rate.
+        $cumulativepresent += $quarterdata['quarterpresent'];
+        $cumulativeabsent  += $quarterdata['quarterabsent'];
+        $cumulativelate    += $quarterdata['quarterlate'];
+        // Calculate quarter grade rate.
+        $cumulativegraderate += $quarterdata['quartergraderate'];
+        // Total processed courses in the quarter.
+        if ($quarterdata['quartergraderate'] > 0) {
+            $processedcumulativequarters++;
+        }
+        // Check if the last session date of the quarter is greater than cumulative last session date.
+        if ($cumulativelastsession < $quarterdata['quarterlastsession']) {
+            $cumulativelastsession = $quarterdata['quarterlastsession'];
         }
     }
 
-    // Set latest session for summary
-    $reportdata['summary']['lastsession'] = $lastdate ? userdate($lastdate) : '-';
+    // Total processed quarters in the program.
+    $totalcumulativequarters = count($cumulativequartersdata);
 
-    return $reportdata;
+    return [
+        'userid'                => $userid,
+        'quarters'              => $cumulativequartersdata,
+        'cumulativepresent'     => $cumulativepresent,
+        'cumulativeabsent'      => $cumulativeabsent,
+        'cumulativelate'        => $cumulativelate,
+        'cumulativegraderate'   => $totalcumulativequarters > 0 ? round($cumulativegraderate / $totalcumulativequarters, 1) : 0,
+        'cumulativelastsession' => $cumulativelastsession,
+        'isstrlastsession'      => is_string($cumulativelastsession),
+    ];
 }
 
 
