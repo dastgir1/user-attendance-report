@@ -27,9 +27,6 @@
 $userid     = required_param('userid', PARAM_INT);
 $programid  = required_param('programid', PARAM_INT);
 
-$attendanceRepot=get_user_attendance_report($userid, $programid);
-
-
-
-// echo $OUTPUT->render_from_template('report_userattend/attendancereport',$attendanceRepot);
-echo $OUTPUT->render_from_template('report_userattend/attendance_report',$attendanceRepot);
+// Generate attendance reports for the user across all enrolled courses containing attendance activities.
+$context = report_userattend_get_context_of_user_attendance_report_in_program($userid, $programid);
+echo $OUTPUT->render_from_template('report_userattend/attendance_report',$context);
