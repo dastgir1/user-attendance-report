@@ -1,0 +1,111 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_userattend/report/cumulative
+
+    Cumulative Total Attendance.
+
+    Example context (json):
+    {
+        "cumulativepresent": 10,
+        "cumulativeabsent": 5,
+        "cumulativelate": 2,
+        "cumulativegraderate": 80,
+        "cumulativelastsession": "2/07/25",
+        "str": {
+            "report_heading_cumulativeTotal": "Cumulative Total",
+            "report_heading_present": "Present",
+            "report_heading_absent": "Absent",
+            "report_heading_late": "Late",
+            "report_heading_grade": "Grade",
+            "report_heading_lastsession": "Last Session"
+        }
+    }
+}}
+
+<div class="col-xl-12">
+    <h5>
+        <strong>
+            {{#str}} report_heading_cumulativeTotal, report_userattend {{/str}}
+        </strong>
+    </h5>
+</div>
+<div class="col-xl-4 mt-3" id="ao-cumulative-total">
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>
+                        {{#str}} report_heading_present, report_userattend {{/str}}
+                    </th>
+                    <th>
+                        <span>
+                            {{cumulativepresent}}
+                        </span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <strong>
+                            {{#str}} report_heading_absent, report_userattend {{/str}}
+                        </strong>
+                    </td>
+                    <td>
+                        {{cumulativeabsent}}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>
+                            {{#str}} report_heading_late, report_userattend {{/str}}
+                        </strong>
+                    </td>
+                    <td>
+                        {{cumulativelate}}
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>
+                            {{#str}} report_heading_grade, report_userattend {{/str}}
+                        </strong>
+                    </td>
+                    <td>
+                        {{cumulativegraderate}}%
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>
+                            {{#str}} report_heading_lastsession, report_userattend {{/str}}
+                        </strong>
+                    </td>
+                    <td>
+                        {{#isstrlastsession}}
+                            {{cumulativelastsession}}
+                        {{/isstrlastsession}}
+                        {{^isstrlastsession}}
+                            {{#userdate}} {{cumulativelastsession}}, {{#str}} strftimedatefullshort, core_langconfig {{/str}} {{/userdate}}
+                        {{/isstrlastsession}}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

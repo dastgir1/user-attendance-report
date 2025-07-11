@@ -1,0 +1,79 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_userattend/report/tablebody
+
+    Attendance data for each course in a quarter.
+
+    Example context (json):
+    {
+        "quartercourses": [
+            {
+                "courseid": 1,
+                "coursename": "Course 1",
+                "coursepresent": 10,
+                "courseabsent": 2,
+                "courselate": 1,
+                "coursegraderate": 90,
+                "courselastsession": "3/07/25",
+                "userdate": true
+            },
+            {
+                "courseid": 2,
+                "coursename": "Course 2",
+                "coursepresent": 8,
+                "courseabsent": 3,
+                "courselate": 0,
+                "coursegraderate": 85,
+                "courselastsession": "2/07/25",
+                "userdate": true
+            }
+        ]
+    }
+}}
+
+<tbody>
+    {{#quartercourses}}
+        <tr>
+            <td>
+                <a href="{{config.wwwroot}}/blocks/autoattend/index.php?course={{courseid}}&student={{userid}}" class="text-decoration-none">
+                    {{coursename}}
+                </a>
+            </td>
+            <td class="text-center">
+                {{coursepresent}}
+            </td>
+            <td class="text-center">
+                {{courseabsent}}
+            </td>
+            <td class="text-center">
+                {{courselate}}
+            </td>
+            <td class="text-center">
+                {{coursegraderate}}%
+            </td>
+            <td class="text-center">
+                {{#isstrlastsession}}
+                    {{courselastsession}}
+                {{/isstrlastsession}}
+                {{^isstrlastsession}}
+                    {{#userdate}} {{courselastsession}}, {{#str}} strftimedatefullshort, core_langconfig {{/str}} {{/userdate}}
+                {{/isstrlastsession}}
+            </td>
+        </tr>
+    {{/quartercourses}}
+</tbody>
