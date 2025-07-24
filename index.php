@@ -24,24 +24,22 @@
 
 // FILES.
 require_once('../../config.php');
-require_once($CFG->libdir . '/adminlib.php');
 require_once('lib.php');
 
-// Admin settings.
-admin_externalpage_setup('userattend_report');
-
-// PARAMS.
-$userid = optional_param('userid', 0, PARAM_INT);
+// PAGE.
+$pluginname = get_string('pluginname', 'report_userattend');
+$PAGE->set_url(new moodle_url('/report/userattend/'));
+$PAGE->set_context(\core\context\system::instance());
+$PAGE->set_title($pluginname);
+$PAGE->set_heading($pluginname);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pluginname', 'report_userattend'));
 
-if ($userid === 0) {
-    // Search filter where admin can search for a student.
-    include_once('pages/searchuser.php');
+if (is_siteadmin()) {
+    require_once('adminview.php');
+   
 } else {
-    // A search filter having all the programs in which the selected user is enrolled.
-    include_once('pages/processuser.php');
+    require_once('studentview.php');
 }
 
 echo $OUTPUT->footer();
