@@ -15,25 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Process the selected user for attendance report generation.
+ * TODO describe file selectbatch
  *
  * @package    report_userattend
- * @copyright  2025 Syed Zonair <zonair@paktaleem.net>
+ * @copyright  2025 YOUR NAME <your@email.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// PARAMS.
-$userid     = required_param('userid', PARAM_INT);
-$programid  = optional_param('programid', 0, PARAM_INT);
+// Select batch from.
+$selectbatchform = new \report_userattend\form\selectbatch($returnurl, ['userid' => $userid]);
+echo $selectbatchform->render(); // Display the Select Batch form.
 
-// CONSTANTS.
-define('REPORT_USERATTEND_BATCH', get_config('report_userattend', 'batch'));
+// If the form is submitted.
+if ($fromform = $selectbatchform->get_data()) {
+    $batchid = $fromform->batch; // Set batchid. It is necessary.  
+    // If a batch is selected, display the SelectProgram form.
+    if ($batchid === 0) {
+        
+        require_once('pages/selectbatch.php');
+    } else {
+        
+        $returnurl = new \moodle_url('/report/userattend/', ['userid' => $userid, 'batch' => $batchid]);
 
-// Check if a program is selected.
-if ($programid === 0) {
-    // If no program is selected, redirect to the select a program page.
-    include_once('pages/selectprogram.php');
-} else {
-    // If a program is selected, display the attendance report for that program & for that user.
-    include_once('pages/attendancereport.php');
+        require_once('pages/selectprogram.php');
+    }
 }

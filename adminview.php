@@ -15,34 +15,36 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Display student Attendance report for current user.
+ * Display admin Attendance report.
  *
  * @package    report_userattend
  * @copyright  2025 Syed Zonair <zonair@paktaleem.net>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_login();
+require_admin();
 
 // Set the userid.
-$userid = $USER->id;
+$userid = optional_param('userid', 0, PARAM_INT);
 // Set the batchid.
 $batchid = optional_param('batch', 0, PARAM_INT);
 // Set the programid.
 $programid = optional_param('programid', 0, PARAM_INT);
-// Set $returnurl to be used in selectprogram.php file.
-$returnurl = null;
 
-// Select filter where admin can select program of a student.
-require_once('pages/selectbatch.php');
-if ($batchid === 0) {
-    // If no batch is selected, display the SelectBatch form again.
+if ($userid === 0) {
+    // Search filter where admin can search for a student.
+    require_once('pages/searchuser.php');
+} else if ($batchid === 0) {
+    // Set $returnurl to be used in selectprogram.php file.
+    $returnurl = new \moodle_url('/report/userattend/', ['userid' => $userid]);
+
     require_once('pages/selectbatch.php');
-} else if ($programid === 0) {
+}else if($programid === 0) {
     // If a batch is selected, display the SelectProgram form.
     $returnurl = new \moodle_url('/report/userattend/', ['userid' => $userid, 'batch' => $batchid]);
     require_once('pages/selectprogram.php');
-} else {
+
+}else {
     // If a program is selected, display the attendance report.
     $returnurl = new \moodle_url('/report/userattend/', ['userid' => $userid, 'programid' => $programid]);
     require_once('pages/attendancereport.php');
