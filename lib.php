@@ -326,6 +326,44 @@ function report_userattend_get_context_of_user_attendance_report_in_program(int 
         'isstrlastsession'      => is_string($cumulativelastsession),
     ];
 }
+function report_userattend_get_batches(int $userid): array {
+    global $DB;
 
+    $records = $DB->get_records('course_categories', ['parent' => 0], 'id', 'id, name');
+    $enrolledbatches = [];
+
+    foreach ($records as $record) {
+       // Get the programs where the user is enrolled in at least one course.
+       $programs = $DB->get_records_menu('course_categories', ['parent' => $record->id], 'id', 'id, name');
+       $isbreak = false;
+       foreach ($programs as $programid => $programname) {
+           // Fetch the subcategories (quarters) under this program.
+           $quarters = $DB->get_fieldset_select('course_categories', 'id', 'parent = ?', [$programid]);
+           foreach ($quarters as $quarterid) {
+                // Get courses in quarter category.
+                $courses = $DB->get_fieldset_select('course', 'id', 'category = ?', [$quarterid]);
+                foreach ($courses as $courseid) {
+                    // Check if the user is enrolled in this course.
+                    $context = \context_course::instance($courseid);
+                    if (is_enrolled($context, $userid)) {
+                        // If the user is enrolled, add the program to the list.
+                        $enrolledbatches[$record->id] = $record->name;
+
+                        $isbreak = true; // User is enrolled in at least one course in this program.
+                        break; // No need to check more courses in this subcategory
+                    }
+                }
+
+                // If the user is enrolled in this program, no need to check further quarters.
+                if ($isbreak) {
+                    $isbreak = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    return $enrolledbatches;
+}
 
 
