@@ -32,13 +32,15 @@ class selectprogram  extends \moodleform {
         $userid = $this->_customdata['userid'];
 
         require_once(__DIR__ . '/../../lib.php');
-        $programs = report_userattend_get_user_programs_in_batch($userid);
+       // Get programs from selected batch
+        $programs = report_userattend_get_user_programs_in_batch($userid, $batchid);
 
         if (empty($programs)) {
             // If no programs are found, display a message.
             notice(get_string('form_noprograms', 'report_userattend'), new \moodle_url('/report/userattend/'));
         }
 
+        // Program selection dropdown.
         $mform->addElement('select', 'program', get_string('form_program', 'report_userattend'), $programs);
         $mform->setType('program', PARAM_INT);
         $mform->addRule('program', null, 'required', null, 'client');
